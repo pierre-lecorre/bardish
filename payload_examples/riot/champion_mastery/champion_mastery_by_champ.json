@@ -1,0 +1,21 @@
+{
+    "puuid": "0Vj7SIBGQCAPDuDr_eYeAiUbDvDgCJNG69RQRhjCChICI-NqxqRHNk-43J7uO6c7PVmq4Ak4vuhAOA",
+    "championId": 1,
+    "championLevel": 3,
+    "championPoints": 12410,
+    "lastPlayTime": 1773419354000,
+    "championPointsSinceLastLevel": 6410,
+    "championPointsUntilNextLevel": 190,
+    "markRequiredForNextLevel": 0,
+    "tokensEarned": 8,
+    "championSeasonMilestone": 1,
+    "milestoneGrades": [],
+    "nextSeasonMilestone": {
+        "requireGradeCounts": {
+            "A-": 1
+        },
+        "rewardMarks": 1,
+        "bonus": false,
+        "totalGamesRequires": 1
+    }
+}
