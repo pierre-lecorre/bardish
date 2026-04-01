@@ -1,5 +1,11 @@
 import sys
+import logging
+
+# Set up basic logging so we can see what the fetcher is doing
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+
 from core.api_riot import make_api_request
+from core.player import PlayerHistoryFetcher
 
 def main():
     game_name = "peusswor"
@@ -15,18 +21,17 @@ def main():
         sys.exit(1)
         
     puuid = account_data['puuid']
-    print(f"Successfully retrieved PUUID: {puuid}")
+    print(f"Successfully retrieved PUUID: {puuid}\n")
     
-    # 2. Fetch the list of match IDs
-    count = 1
-    print(f"Fetching up to {count} recent match IDs...")
-    match_ids = make_api_request("match_list", puuid=puuid, count=count)
+    # 2. Instantiate our fetcher class which uses the DatabaseManager automatically
+    fetcher = PlayerHistoryFetcher()
     
-    if not match_ids:
-        print("No matches found or failed to retrieve matches.")
-        sys.exit(1)
-        
-    print(match_ids)
-
+    # 3. Use sync_player_history to exhaustively paginate their ENTIRE history.
+    # It will use ETA predictions and cache everything dynamically into 'app_data.db'.
+    full_match_history = fetcher.sync_player_history(puuid)
+    
+    print("\n--- DONE ---")
+    print(f"Stored {len(full_match_history)} comprehensive match objects into the local SQLite database!")
+    
 if __name__ == "__main__":
     main()

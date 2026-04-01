@@ -11,34 +11,37 @@ class DatabaseManager:
     """
     def __init__(self, db_path: str = "app_data.db"):
         self.db_path = db_path
-        self._init_db()
+        self._known_tables = set()
 
-    def _init_db(self):
-        """Initializes the database with a table for storing JSON data."""
+    def _ensure_table(self, table_name: str):
+        """Ensures the specified table exists before operating on it."""
+        if table_name in self._known_tables:
+            return
+            
+        if not table_name.isidentifier():
+            raise ValueError(f"Invalid table name: {table_name}")
+            
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                # Create a simple key-value store where value is the JSON string
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS json_store (
+                cursor.execute(f'''
+                    CREATE TABLE IF NOT EXISTS {table_name} (
                         id TEXT PRIMARY KEY,
                         data TEXT,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
                 conn.commit()
-                logger.info(f"Database initialized at {self.db_path}")
+                self._known_tables.add(table_name)
         except sqlite3.Error as e:
-            logger.error(f"Error initializing database: {e}")
+            logger.error(f"Error ensuring table {table_name}: {e}")
 
-    def store_json(self, key_id: str, json_data: Union[Dict[Any, Any], List[Any], str]):
+    def store_json(self, key_id: str, json_data: Union[Dict[Any, Any], List[Any], str], table_name: str = "default_store"):
         """
-        Stores or updates JSON data for a given ID.
+        Stores or updates JSON data for a given ID in a specific table.
+        """
+        self._ensure_table(table_name)
         
-        Args:
-            key_id (str): The unique identifier for this data
-            json_data (dict, list, or str): The JSON data to store
-        """
         # Convert to string if it's a dict or list
         if isinstance(json_data, (dict, list)):
             data_str = json.dumps(json_data)
@@ -49,56 +52,65 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 # Insert or update based on the ID
-                cursor.execute('''
-                    INSERT INTO json_store (id, data, updated_at)
+                cursor.execute(f'''
+                    INSERT INTO {table_name} (id, data, updated_at)
                     VALUES (?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT(id) DO UPDATE SET
                         data=excluded.data,
                         updated_at=CURRENT_TIMESTAMP
                 ''', (key_id, data_str))
                 conn.commit()
-                logger.debug(f"Successfully stored JSON data for key: {key_id}")
+                logger.debug(f"Successfully stored JSON data for key: {key_id} in {table_name}")
         except sqlite3.Error as e:
-            logger.error(f"Error storing JSON data for ID {key_id}: {e}")
+            logger.error(f"Error storing JSON data for ID {key_id} in {table_name}: {e}")
 
-    def get_json(self, key_id: str) -> Optional[Union[Dict[Any, Any], List[Any]]]:
+    def get_json(self, key_id: str, table_name: str = "default_store") -> Optional[Union[Dict[Any, Any], List[Any]]]:
         """
-        Retrieves JSON data for a given ID.
+        Retrieves JSON data for a given ID from a specific table.
+        """
+        self._ensure_table(table_name)
         
-        Args:
-            key_id (str): The unique identifier for the data
-            
-        Returns:
-            The parsed JSON data (dict or list) or None if not found
-        """
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute('SELECT data FROM json_store WHERE id = ?', (key_id,))
+                cursor.execute(f'SELECT data FROM {table_name} WHERE id = ?', (key_id,))
                 result = cursor.fetchone()
                 
                 if result:
                     return json.loads(result[0])
                 return None
         except sqlite3.Error as e:
-            logger.error(f"Error retrieving JSON data for ID {key_id}: {e}")
+            logger.error(f"Error retrieving JSON data for ID {key_id} from {table_name}: {e}")
         except json.JSONDecodeError as e:
-             logger.error(f"Error decoding JSON data for ID {key_id}: {e}")
+             logger.error(f"Error decoding JSON data for ID {key_id} in {table_name}: {e}")
              
         return None
 
-    def delete_json(self, key_id: str):
+    def delete_json(self, key_id: str, table_name: str = "default_store"):
         """
-        Deletes JSON data for a given ID.
+        Deletes JSON data for a given ID from a specific table.
+        """
+        self._ensure_table(table_name)
         
-        Args:
-            key_id (str): The unique identifier for the data
-        """
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute('DELETE FROM json_store WHERE id = ?', (key_id,))
+                cursor.execute(f'DELETE FROM {table_name} WHERE id = ?', (key_id,))
                 conn.commit()
-                logger.debug(f"Successfully deleted JSON data for key: {key_id}")
+                logger.debug(f"Successfully deleted JSON data for key: {key_id} in {table_name}")
         except sqlite3.Error as e:
-            logger.error(f"Error deleting JSON data for ID {key_id}: {e}")
+            logger.error(f"Error deleting JSON data for ID {key_id} in {table_name}: {e}")
+
+    def key_exists(self, key_id: str, table_name: str = "default_store") -> bool:
+        """
+        Fast check to see if a key exists without parsing the JSON payload.
+        """
+        self._ensure_table(table_name)
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(f'SELECT 1 FROM {table_name} WHERE id = ?', (key_id,))
+                return cursor.fetchone() is not None
+        except sqlite3.Error as e:
+            logger.error(f"Error checking if key exists: {e}")
+            return False

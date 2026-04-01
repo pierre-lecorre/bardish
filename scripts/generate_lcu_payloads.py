@@ -46,17 +46,18 @@ def run_lcu_tests():
                     content = r.json()
                 except ValueError:
                     content = {"text": r.text}
+                    
+                category_dir = os.path.join(base_dir, category)
+                os.makedirs(category_dir, exist_ok=True)
+                     
+                file_path = os.path.join(category_dir, f"{name}.json")
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(content, f, indent=4, ensure_ascii=False)
+                print(f"      [SAVED] {file_path}")
             else:
-                content = {"status": f"Status {r.status_code} - Likely because client phase is inactive for this endpoint."}
+                print(f"      [SKIPPED] Status {r.status_code}")
         except Exception as e:
-            content = {"error": f"Exception: {e}"}
-             
-        category_dir = os.path.join(base_dir, category)
-        os.makedirs(category_dir, exist_ok=True)
-             
-        file_path = os.path.join(category_dir, f"{name}.json")
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(content, f, indent=4, ensure_ascii=False)
+            print(f"      [ERROR] Exception: {e}")
         
     print(f"\n✅ Successfully generated properly organized LCU examples!")
 

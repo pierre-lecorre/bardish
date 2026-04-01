@@ -42,7 +42,7 @@ ENDPOINTS = {
         "limits": [(20000, 10), (1200000, 600)] # champion-mastery-v4
     },
     "match_list": {
-        "url": f"https://{server_region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{{puuid}}/ids?count={{count}}",
+        "url": f"https://{server_region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{{puuid}}/ids?start={{start}}&count={{count}}",
         "limits": [(2000, 10)] # match-v5
     },
     "match_detail": {
@@ -80,7 +80,7 @@ class RateLimiter:
             # Sleep until the oldest request in the window expires
             sleep_time = period - (now - valid_history[0])
             if sleep_time > 0:
-                print(f"Rate Limiter: Delaying for {sleep_time:.2f}s to respect {max_req} req / {period}s limit.")
+                #print(f"Rate Limiter: Delaying for {sleep_time:.2f}s to respect {max_req} req / {period}s limit.")
                 time.sleep(sleep_time)
                 now = time.time()
                 # Recalculate after waking up
@@ -95,7 +95,7 @@ class RateLimiter:
             now = time.time()
             if now < self.global_penalty_until:
                 sleep_time = self.global_penalty_until - now
-                print(f"Rate Limiter: Global penalty active. Delaying for {sleep_time:.2f}s.")
+                #print(f"Rate Limiter: Global penalty active. Delaying for {sleep_time:.2f}s.")
                 time.sleep(sleep_time)
 
             # 1. Enforce Application Rate Limits (across all endpoints)

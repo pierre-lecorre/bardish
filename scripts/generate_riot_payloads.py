@@ -42,18 +42,20 @@ def run_riot_tests():
         print(f"  -> Testing: {category}/{endpoint}")
         try:
             data = make_api_request(endpoint, **kwargs)
-            content = data if data else {"status": "Returned None (likely 404 Expected if not active)"}
+            if data:
+                # Create category folder specifically
+                category_dir = os.path.join(base_dir, category)
+                os.makedirs(category_dir, exist_ok=True)
+                
+                # Save to domain-specific folder
+                file_path = os.path.join(category_dir, f"{endpoint}.json")
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4, ensure_ascii=False)
+                print(f"      [SAVED] {file_path}")
+            else:
+                print(f"      [SKIPPED] No data returned (likely 404 Expected)")
         except Exception as e:
-            content = {"error": f"Exception: {e}"}
-            
-        # Create category folder specifically
-        category_dir = os.path.join(base_dir, category)
-        os.makedirs(category_dir, exist_ok=True)
-        
-        # Save to domain-specific folder
-        file_path = os.path.join(category_dir, f"{endpoint}.json")
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(content, f, indent=4, ensure_ascii=False)
+            print(f"      [ERROR] Exception: {e}")
             
     print(f"\n✅ Successfully generated properly organized Riot examples!")
 
